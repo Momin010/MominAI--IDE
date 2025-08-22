@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CodeCraft IDE</title>
+    <!-- Wasmer for WebAssembly shell -->
+    <script src="https://cdn.jsdelivr.net/npm/@wasmer/sdk/dist/index.umd.js"></script>
     <script type="importmap">
       {
         "imports": {
@@ -16,17 +18,17 @@
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
     <!-- Supabase for backend -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <!-- Xterm for terminal UI -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/dist/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/dist/xterm-addon-fit.js"></script>
-    <!-- Wasmer for WebAssembly shell -->
-    <script src="https://cdn.jsdelivr.net/npm/@wasmer/sdk/dist/index.umd.js"></script>
     <!-- Mermaid for Code Visualizer plugin -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    
+    <!-- Monaco Editor must be loaded AFTER other UMD libraries to avoid conflicts -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
     <script>
       require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
       window.MonacoEnvironment = {

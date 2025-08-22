@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import type { FileAction, DiffLine } from '../types';
 import { useAI } from '../contexts/AIContext';
@@ -102,6 +101,7 @@ const AiDiffViewModal: React.FC<AiDiffViewModalProps> = ({ isOpen, onClose, acti
                     {actions.map((action, index) => {
                         const originalFile = originalFiles.find(f => f.path === action.path);
                         const originalContent = originalFile?.content || '';
+                        const modifiedContent = action.content || ''; // FIX: Ensure content is a string
                         
                         return (
                             <div key={index} className="bg-black/20 rounded-lg">
@@ -112,7 +112,7 @@ const AiDiffViewModal: React.FC<AiDiffViewModalProps> = ({ isOpen, onClose, acti
                                     <span className="font-mono text-gray-300">{action.path}</span>
                                 </div>
                                 <div className="p-2">
-                                    <DiffView original={originalContent} modified={action.content} />
+                                    <DiffView original={originalContent} modified={modifiedContent} />
                                 </div>
                             </div>
                         );
