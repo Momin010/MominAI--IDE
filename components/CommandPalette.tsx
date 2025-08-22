@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useCommandPalette } from '../hooks/useCommandPalette';
 import type { Command } from '../types';
@@ -111,7 +110,7 @@ const CommandPalette: React.FC = () => {
                                   key={cmd.id}
                                   onClick={() => handleCommandClick(cmd)}
                                   className={`p-3 rounded-md cursor-pointer flex items-center justify-between text-base ${
-                                    isSelected ? 'bg-blue-600' : 'hover:bg-white/10'
+                                    isSelected ? 'bg-[var(--accent-primary)]/80 text-black' : 'hover:bg-white/10'
                                   }`}
                                 >
                                   <span>{cmd.label}</span>

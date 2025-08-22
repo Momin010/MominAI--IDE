@@ -38,6 +38,7 @@ import * as supabaseService from './services/supabaseService';
 import { getAllFiles } from './utils/fsUtils';
 import InspectorPanel from './components/InspectorPanel';
 import AiDiffViewModal from './components/AiDiffViewModal';
+import TitleBar from './components/TitleBar';
 
 
 // --- Notification System ---
@@ -117,6 +118,7 @@ const AppContent: React.FC = () => {
   const [supabaseAnonKey, setSupabaseAnonKey] = useState<string | null>(() => localStorage.getItem('supabaseAnonKey'));
   const [diffModalState, setDiffModalState] = useState<{ isOpen: boolean, actions: FileAction[], originalFiles: {path: string, content: string}[], messageIndex?: number }>({ isOpen: false, actions: [], originalFiles: [] });
   const [geminiApiKey, setGeminiApiKey] = useState<string | null>(() => localStorage.getItem('geminiApiKey'));
+  const [panelVisibility, setPanelVisibility] = useState({ left: true, right: true, bottom: true });
 
   // Inspector state
   const [isInspectorActive, setIsInspectorActive] = useState(false);
@@ -139,12 +141,23 @@ const AppContent: React.FC = () => {
   
   // Effect to initialize AI service with the user's key on load
   useEffect(() => {
-    setAiServiceKey(geminiApiKey);
-  }, [geminiApiKey]);
+    const key = localStorage.getItem('geminiApiKey');
+    setGeminiApiKey(key);
+    setAiServiceKey(key);
+  }, []);
 
   const handleSetGeminiApiKey = (key: string | null) => {
-    setGeminiApiKey(key); // Update React state
-    setAiServiceKey(key); // This function will also update localStorage
+    if (key) {
+        localStorage.setItem('geminiApiKey', key);
+    } else {
+        localStorage.removeItem('geminiApiKey');
+    }
+    setGeminiApiKey(key);
+    setAiServiceKey(key);
+  };
+  
+  const togglePanel = (panel: 'left' | 'right' | 'bottom') => {
+    setPanelVisibility(prev => ({ ...prev, [panel]: !prev[panel] }));
   };
 
   // Inspector Logic
@@ -575,93 +588,97 @@ const AppContent: React.FC = () => {
       setDiffModalState={setDiffModalState}
     >
         <div className="w-screen h-screen bg-transparent p-4 flex flex-col gap-4">
-          <div className="flex-grow flex gap-4 min-h-0">
-              <ActivityBar activeView={activeView} setActiveView={switchView} />
-              <ResizablePanels
-                leftPanel={
-                    <SideBar activeView={activeView}>
-                        <FileExplorer 
-                            fs={fsState.fs!}
-                            onFileSelect={handleFileSelect}
-                            createNode={fsState.createNode}
-                            deleteNode={fsState.deleteNode}
-                            renameNode={fsState.renameNode}
-                            moveNode={fsState.moveNode}
-                            openAiFileGenerator={(path) => setAiFileGeneratorState({ isOpen: true, path })}
-                        />
-                         <SearchPanel 
-                            performSearch={ideApi.performSearch}
-                            isSearching={isSearching}
-                            searchResults={searchResults}
-                            onResultClick={handleFileSelect}
-                            replaceAll={replaceAll}
-                        />
-                        <SourceControlPanel 
-                            fs={fsState.fs!} 
-                            replaceFs={fsState.replaceFs} 
-                            githubToken={githubToken} 
-                            switchView={switchView}
-                            supabaseUser={supabaseUser}
-                        />
-                        {/* These panels are now main views */}
-                        <div />
-                        <div />
-                        <PluginPanel plugins={allPlugins} />
-                        <SettingsPanel
-                           githubToken={githubToken}
-                           setGithubToken={handleSetGithubToken}
-                           supabaseUser={supabaseUser}
-                           supabaseUrl={supabaseUrl}
-                           setSupabaseUrl={setSupabaseUrl}
-                           supabaseAnonKey={supabaseAnonKey}
-                           setSupabaseAnonKey={setSupabaseAnonKey}
-                           geminiApiKey={geminiApiKey}
-                           setGeminiApiKey={handleSetGeminiApiKey}
-                        />
-                    </SideBar>
-                }
-                mainPanel={
-                     <EditorPane
-                        openFiles={openFiles}
-                        activeTab={activeTab}
-                        onTabSelect={setActiveTab}
-                        onTabClose={handleTabClose}
-                        fileContent={(activeTab && !activeTab.startsWith('plugin:') && activeTab !== 'ai-assistant') ? fsState.readNode(activeTab) ?? '' : ''}
-                        onContentChange={handleFileContentChange}
-                        editorActions={editorActions}
-                        diagnostics={combinedDiagnostics.filter(d => d.source !== 'AI Code Review')}
-                        breakpoints={breakpoints[activeTab || ''] || []}
-                        onBreakpointsChange={handleBreakpointsChange}
-                        pluginViews={pluginViews}
-                    />
-                }
-                rightPanel={rightPanelContent}
-                bottomPanel={
-                   <TabbedPanel 
-                        diagnostics={combinedDiagnostics} 
-                        dependencyReport={dependencyReport}
-                        activeTab={activeBottomTab}
-                        onTabChange={setActiveBottomTab}
-                   >
-                        <Terminal fs={fsState.fs}/>
-                        <ProblemsPanel 
+           <TitleBar onTogglePanel={togglePanel} panelVisibility={panelVisibility} />
+          <div className="flex-grow flex min-h-0">
+              {panelVisibility.left && <ActivityBar activeView={activeView} setActiveView={switchView} />}
+              <div className={`flex-grow ${panelVisibility.left ? 'ml-4' : ''}`}>
+                <ResizablePanels
+                  panelVisibility={panelVisibility}
+                  leftPanel={
+                      <SideBar activeView={activeView}>
+                          <FileExplorer 
+                              fs={fsState.fs!}
+                              onFileSelect={handleFileSelect}
+                              createNode={fsState.createNode}
+                              deleteNode={fsState.deleteNode}
+                              renameNode={fsState.renameNode}
+                              moveNode={fsState.moveNode}
+                              openAiFileGenerator={(path) => setAiFileGeneratorState({ isOpen: true, path })}
+                          />
+                           <SearchPanel 
+                              performSearch={ideApi.performSearch}
+                              isSearching={isSearching}
+                              searchResults={searchResults}
+                              onResultClick={handleFileSelect}
+                              replaceAll={replaceAll}
+                          />
+                          <SourceControlPanel 
+                              fs={fsState.fs!} 
+                              replaceFs={fsState.replaceFs} 
+                              githubToken={githubToken} 
+                              switchView={switchView}
+                              supabaseUser={supabaseUser}
+                          />
+                          {/* These panels are now main views */}
+                          <div />
+                          <div />
+                          <PluginPanel plugins={allPlugins} />
+                          <SettingsPanel
+                             githubToken={githubToken}
+                             setGithubToken={handleSetGithubToken}
+                             supabaseUser={supabaseUser}
+                             supabaseUrl={supabaseUrl}
+                             setSupabaseUrl={setSupabaseUrl}
+                             supabaseAnonKey={supabaseAnonKey}
+                             setSupabaseAnonKey={setSupabaseAnonKey}
+                             geminiApiKey={geminiApiKey}
+                             setGeminiApiKey={handleSetGeminiApiKey}
+                          />
+                      </SideBar>
+                  }
+                  mainPanel={
+                       <EditorPane
+                          openFiles={openFiles}
+                          activeTab={activeTab}
+                          onTabSelect={setActiveTab}
+                          onTabClose={handleTabClose}
+                          fileContent={(activeTab && !activeTab.startsWith('plugin:') && activeTab !== 'ai-assistant') ? fsState.readNode(activeTab) ?? '' : ''}
+                          onContentChange={handleFileContentChange}
+                          editorActions={editorActions}
+                          diagnostics={combinedDiagnostics.filter(d => d.source !== 'AI Code Review')}
+                          breakpoints={breakpoints[activeTab || ''] || []}
+                          onBreakpointsChange={handleBreakpointsChange}
+                          pluginViews={pluginViews}
+                      />
+                  }
+                  rightPanel={rightPanelContent}
+                  bottomPanel={
+                     <TabbedPanel 
                           diagnostics={combinedDiagnostics} 
-                          onProblemSelect={(path, line) => handleFileSelect(path, line)} 
-                          activeFile={activeTab}
-                          readNode={fsState.readNode}
-                          updateNode={fsState.updateNode}
-                          addNotification={addNotification}
-                        />
-                         <DebugConsolePanel 
-                           messages={consoleMessages} 
-                           onClear={() => setConsoleMessages([])}
-                           onAiFixRequest={handleAiFixRequest}
-                           isFixingWithAi={isFixingWithAi}
-                         />
-                         <DependencyPanel report={dependencyReport} />
-                   </TabbedPanel>
-                }
-              />
+                          dependencyReport={dependencyReport}
+                          activeTab={activeBottomTab}
+                          onTabChange={setActiveBottomTab}
+                     >
+                          <Terminal fs={fsState.fs}/>
+                          <ProblemsPanel 
+                            diagnostics={combinedDiagnostics} 
+                            onProblemSelect={(path, line) => handleFileSelect(path, line)} 
+                            activeFile={activeTab}
+                            readNode={fsState.readNode}
+                            updateNode={fsState.updateNode}
+                            addNotification={addNotification}
+                          />
+                           <DebugConsolePanel 
+                             messages={consoleMessages} 
+                             onClear={() => setConsoleMessages([])}
+                             onAiFixRequest={handleAiFixRequest}
+                             isFixingWithAi={isFixingWithAi}
+                           />
+                           <DependencyPanel report={dependencyReport} />
+                     </TabbedPanel>
+                  }
+                />
+              </div>
           </div>
           <StatusBar 
             activeFile={activeTab} 

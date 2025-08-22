@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Directory, FileSystemNode, GistCommit, SupabaseUser } from '../types';
 import { useNotifications } from '../App';
@@ -188,10 +187,10 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ fs, replaceFs, 
             <div className={`flex-grow overflow-y-auto p-4 space-y-6 ${activeTab !== 'supabase' && 'hidden'}`}>
                 <h3 className="text-md font-semibold mb-2">Supabase Cloud Sync</h3>
                  <div className="space-y-3">
-                    <button onClick={handleSupabasePush} disabled={!!isLoading} className="w-full bg-green-600 hover:bg-green-500 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
+                    <button onClick={handleSupabasePush} disabled={!!isLoading} className="w-full bg-green-500/80 hover:bg-green-500/70 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
                         {isLoading === 'push-supabase' ? 'Pushing...' : 'Push to Supabase'}
                     </button>
-                    <button onClick={handleSupabasePull} disabled={!!isLoading} className="w-full bg-blue-600 hover:bg-blue-500 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
+                    <button onClick={handleSupabasePull} disabled={!!isLoading} className="w-full bg-blue-500/80 hover:bg-blue-500/70 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
                         {isLoading === 'pull-supabase' ? 'Pulling...' : 'Pull from Supabase'}
                     </button>
                 </div>
@@ -205,7 +204,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ fs, replaceFs, 
                         <p className="text-gray-400 mb-4">You are not connected to GitHub.</p>
                         <button 
                             onClick={() => switchView('settings')}
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition-colors"
+                            className="bg-[var(--accent-primary)]/80 hover:bg-[var(--accent-primary)]/70 text-black font-bold py-2 px-4 rounded transition-colors"
                         >
                             Connect to GitHub
                         </button>
@@ -214,11 +213,11 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ fs, replaceFs, 
                     <>
                         <div>
                             <h3 className="text-md font-semibold mb-2">Commit & Push</h3>
-                            <textarea value={commitMessage} onChange={(e) => setCommitMessage(e.target.value)} placeholder="Commit message..." rows={2} className="bg-black/30 w-full p-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 mb-2" />
+                            <textarea value={commitMessage} onChange={(e) => setCommitMessage(e.target.value)} placeholder="Commit message..." rows={2} className="bg-black/30 w-full p-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[var(--accent-primary)] mb-2" />
                             <button onClick={handleGenerateCommit} disabled={!!isLoading} className="w-full text-sm bg-gray-600 hover:bg-gray-500 rounded-lg px-3 py-1.5 transition-colors mb-2 disabled:opacity-50">
                                 {isLoading === 'commit' ? 'Generating...' : 'Generate Commit Message'}
                             </button>
-                            <button onClick={handlePush} disabled={!!isLoading} className="w-full bg-green-600 hover:bg-green-500 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
+                            <button onClick={handlePush} disabled={!!isLoading} className="w-full bg-green-500/80 hover:bg-green-500/70 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
                                 {isLoading === 'push-gist' ? 'Pushing...' : 'Push Workspace'}
                             </button>
                             {pushResultUrl && (
@@ -229,7 +228,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ fs, replaceFs, 
                         </div>
                         <div>
                             <h3 className="text-md font-semibold mb-2">Deploy Project</h3>
-                             <button onClick={handleDeploy} disabled={!!isLoading} className="w-full bg-indigo-600 hover:bg-indigo-500 rounded-lg px-3 py-2 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2">
+                             <button onClick={handleDeploy} disabled={!!isLoading} className="w-full bg-[var(--accent-secondary)]/80 hover:bg-[var(--accent-secondary)]/70 rounded-lg px-3 py-2 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                                 <span>{isLoading === 'deploy' ? 'Deploying...' : 'Deploy with AI'}</span>
                             </button>
@@ -237,15 +236,15 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ fs, replaceFs, 
                         <div>
                             <h3 className="text-md font-semibold mb-2">Share & Collaborate</h3>
                             <p className="text-xs text-gray-400 mb-2">Create a secret Gist and copy a shareable link.</p>
-                            <button onClick={handleShare} disabled={!!isLoading} className="w-full bg-purple-600 hover:bg-purple-500 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
+                            <button onClick={handleShare} disabled={!!isLoading} className="w-full bg-purple-500/80 hover:bg-purple-500/70 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
                                 {isLoading === 'share' ? 'Sharing...' : 'Copy Share Link'}
                             </button>
                         </div>
                         <div>
                             <h3 className="text-md font-semibold mb-2">Pull from Gist</h3>
                             <p className="text-xs text-gray-400 mb-2">Enter a Gist URL or ID. <strong className='text-yellow-400'>This will replace your workspace.</strong></p>
-                            <input type="text" placeholder="Gist URL or ID" value={pullUrlInput} onChange={(e) => setPullUrlInput(e.target.value)} className="bg-black/30 w-full p-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 mb-2" />
-                            <button onClick={handlePull} disabled={!!isLoading || !pullUrlInput} className="w-full bg-red-600 hover:bg-red-500 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
+                            <input type="text" placeholder="Gist URL or ID" value={pullUrlInput} onChange={(e) => setPullUrlInput(e.target.value)} className="bg-black/30 w-full p-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[var(--accent-primary)] mb-2" />
+                            <button onClick={handlePull} disabled={!!isLoading || !pullUrlInput} className="w-full bg-red-500/80 hover:bg-red-500/70 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
                                 {isLoading === 'pull-gist' ? 'Pulling...' : 'Pull and Replace'}
                             </button>
                         </div>

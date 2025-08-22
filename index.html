@@ -43,18 +43,17 @@
     <style>
       :root {
         /* Glassmorphism Theme */
-        --text-primary: #ffffff;
-        --text-secondary: #a0aec0; /* gray-400 */
-        --text-tertiary: #718096; /* gray-500 */
-        --ui-panel-bg: rgba(20, 20, 35, 0.6);
-        --ui-panel-bg-heavy: rgba(10, 10, 25, 0.75);
-        --ui-border: rgba(255, 255, 255, 0.15);
-        --ui-hover-bg: rgba(255, 255, 255, 0.1);
-        --accent-primary: #4299e1; /* blue-500 */
-        --accent-secondary: #3182ce; /* blue-600 */
-        --scrollbar-thumb: rgba(255, 255, 255, 0.2);
-        --scrollbar-thumb-hover: rgba(255, 255, 255, 0.4);
-        /* New vars for floating UI */
+        --text-primary: #e5e5e5;
+        --text-secondary: #b2b2b2;
+        --text-tertiary: #808080;
+        --ui-panel-bg: rgba(30, 30, 45, 0.4); /* Slightly tinted glass */
+        --ui-panel-bg-heavy: rgba(45, 45, 60, 0.5); /* Heavier tint */
+        --ui-border: rgba(255, 255, 255, 0.1);
+        --ui-hover-bg: rgba(255, 255, 255, 0.08);
+        --accent-primary: #00ffff; /* Neon Cyan */
+        --accent-secondary: #f000ff; /* Neon Magenta */
+        --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+        --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
         --ui-border-radius: 12px;
         --ui-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
       }
@@ -88,6 +87,7 @@
         background-position: center;
         background-attachment: fixed;
         color: var(--text-primary);
+        text-shadow: 0 0 5px rgba(229, 229, 229, 0.15); /* "Blurry color" effect */
         margin: 0;
         overflow: hidden; /* Prevent body scrollbars */
         padding: 1rem; /* Add padding to float the UI */

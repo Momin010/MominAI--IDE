@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { ContextMenuItem } from '../types';
 
@@ -32,7 +31,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, closeMenu }) => 
           <li
             key={index}
             onClick={() => handleAction(item)}
-            className={`px-4 py-1 text-sm ${item.disabled ? 'text-gray-500 cursor-not-allowed' : 'hover:bg-blue-600 cursor-pointer'}`}
+            className={`px-4 py-1 text-sm ${item.disabled ? 'text-gray-500 cursor-not-allowed' : 'hover:bg-[var(--accent-primary)]/40 cursor-pointer'}`}
           >
             {item.label}
           </li>

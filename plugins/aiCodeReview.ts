@@ -28,8 +28,7 @@ export const aiCodeReviewPlugin: Plugin = {
                     const diagnostics: Diagnostic[] = results.map(r => ({ ...r, source: AI_REVIEW_SOURCE }));
                     api.setAiDiagnostics(AI_REVIEW_SOURCE, diagnostics);
                     api.showNotification({ type: 'success', message: `AI review complete. Found ${diagnostics.length} issues.` });
-                    // Optionally, switch to the problems panel
-                    // This requires a new API method: api.switchBottomPanelView('problems')
+                    api.switchBottomPanelView('problems');
                 } catch (error) {
                     if (error instanceof Error) api.showNotification({ type: 'error', message: error.message });
                 }

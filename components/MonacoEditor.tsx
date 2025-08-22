@@ -50,8 +50,30 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({ value, onChange, path, diag
     let suggestionProvider: any = null;
 
     if (editorRef.current && isMonacoLoaded && !editorInstance.current) {
+      window.monaco.editor.defineTheme('glass-theme', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [
+            { token: 'comment', foreground: '6a9955' },
+            { token: 'keyword', foreground: 'c586c0' },
+            { token: 'string', foreground: 'ce9178' },
+            { token: 'number', foreground: 'b5cea8' },
+        ],
+        colors: {
+            'editor.background': '#00000000', // Fully transparent
+            'editor.foreground': '#e5e5e5',
+            'editorGutter.background': '#00000000',
+            'editorLineNumber.foreground': '#858585',
+            'editorLineNumber.activeForeground': '#c6c6c6',
+            'editorCursor.foreground': 'var(--accent-secondary)',
+            'editor.selectionBackground': '#ffffff15',
+            'editorWidget.background': '#25252c',
+            'minimap.background': '#00000000',
+        }
+      });
+      
       const editor = window.monaco.editor.create(editorRef.current, {
-        theme: theme === 'deep-space' ? 'vs-dark' : 'vs',
+        theme: 'glass-theme',
         automaticLayout: false,
         minimap: { enabled: true },
         fontSize: 14,
@@ -156,10 +178,11 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({ value, onChange, path, diag
     }
   }, [breakpoints, path]);
   
-  // Update theme
+  // Update theme - This is now handled at creation, but could be used for dynamic theme switching
   useEffect(() => {
     if (window.monaco) {
-      window.monaco.editor.setTheme(theme === 'deep-space' ? 'vs-dark' : 'vs');
+      // For now, we stick to our glass theme
+      window.monaco.editor.setTheme('glass-theme');
     }
   }, [theme]);
   

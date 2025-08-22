@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAI } from '../contexts/AIContext';
 import type { Message } from '../types';
@@ -49,7 +48,7 @@ const AIAssistant: React.FC = () => {
       <div className="flex-grow p-4 overflow-y-auto space-y-4">
         {messages.map((msg, index) => (
           <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`rounded-lg p-3 max-w-xs md:max-w-md lg:max-w-lg shadow-md animate-fade-in-up ${msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-700/50 text-gray-200'}`}>
+            <div className={`rounded-lg p-3 max-w-xs md:max-w-md lg:max-w-lg shadow-md animate-fade-in-up ${msg.sender === 'user' ? 'bg-[var(--accent-secondary)]/80 text-white' : 'bg-gray-700/50 text-gray-200'}`}>
               {renderMessage(msg)}
               {msg.sender === 'ai' && msg.actions && (
                 <div className="mt-4 border-t border-gray-600 pt-3">
@@ -67,7 +66,7 @@ const AIAssistant: React.FC = () => {
                   <button
                     onClick={() => applyChanges(index, msg.actions!)}
                     disabled={msg.actionsApplied}
-                    className="w-full text-sm bg-blue-600 hover:bg-blue-500 rounded px-3 py-1.5 transition-colors disabled:bg-green-700 disabled:cursor-default disabled:hover:bg-green-700"
+                    className="w-full text-sm bg-[var(--accent-primary)]/80 hover:bg-[var(--accent-primary)]/70 text-black font-bold rounded px-3 py-1.5 transition-colors disabled:bg-green-700 disabled:cursor-default disabled:hover:bg-green-700 disabled:text-white"
                   >
                     {msg.actionsApplied ? '✓ Changes Applied' : 'Review Changes'}
                   </button>
@@ -104,7 +103,7 @@ const AIAssistant: React.FC = () => {
           <button
             onClick={() => handleSendMessage()}
             disabled={isLoading || input.trim() === ''}
-            className="bg-blue-600 text-white p-2 rounded-md disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-blue-500 transition-colors"
+            className="bg-[var(--accent-primary)]/80 text-black p-2 rounded-md disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-[var(--accent-primary)]/70 transition-colors"
           >
              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
           </button>

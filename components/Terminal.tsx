@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import type { Directory, FileSystemNode } from '../types';
 import { generateShellCommand } from '../services/aiService';
@@ -82,7 +81,7 @@ export const Terminal: React.FC<TerminalProps> = ({ fs }) => {
 
                 xterm = new window.Terminal({
                     cursorBlink: true,
-                    theme: { background: 'rgba(10, 10, 25, 0.75)', foreground: '#ffffff', cursor: '#ffffff' },
+                    theme: { background: 'transparent', foreground: '#e5e5e5', cursor: 'var(--accent-primary)' },
                     fontFamily: 'monospace', fontSize: 14, allowProposedApi: true
                 });
                 xtermRef.current = xterm;
@@ -120,7 +119,7 @@ export const Terminal: React.FC<TerminalProps> = ({ fs }) => {
                     if (code === 13) { // Enter
                         if (isAiPrompt) {
                             setIsAiPrompt(false);
-                            xterm.write('\r\n\x1b[36mGenerating command...\x1b[0m\r\n');
+                            xterm.write(`\r\n\x1b[36mGenerating command...\x1b[0m\r\n`);
                             try {
                                 const command = await generateShellCommand(aiPromptBuffer.current);
                                 shell.stdin.write(command);
@@ -151,10 +150,10 @@ export const Terminal: React.FC<TerminalProps> = ({ fs }) => {
                             xterm.write(data);
                         } else {
                             currentInput += data;
-                            if (currentInput === '# ') {
+                            if (currentInput === '#') {
                                 setIsAiPrompt(true);
                                 currentInput = '';
-                                xterm.write('\r\x1b[2K\x1b[36mAI > \x1b[0m');
+                                xterm.write(`\r\x1b[2K\x1b[36mAI > \x1b[0m`);
                             } else {
                                 shell.stdin.write(data);
                             }
