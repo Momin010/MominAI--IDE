@@ -3,44 +3,40 @@ import { GoogleGenAI, Type } from "@google/genai";
 import type { FileSystemNode, Diagnostic, DependencyReport, InspectedElement } from '../types';
 
 let ai: GoogleGenAI | null = null;
-let initError: string | null = null;
+let initError: string | null = "AI not configured. Please add your Gemini API Key in the Settings panel.";
 
-// Initialize AI client once on script load.
-try {
-  // In a standard browser environment, `process.env` is not defined.
-  // The hosting environment (e.g., Vercel, Netlify) is responsible for making 
-  // this variable available, typically through a build step that defines `process.env`.
-  const apiKey = (typeof process !== 'undefined' && process.env.API_KEY) ? process.env.API_KEY : undefined;
-
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable not set or not accessible in this environment.");
+/**
+ * Initializes or updates the AI client with a new API key.
+ * This function should be called from the main application component
+ * whenever the API key changes.
+ * @param key The Gemini API key, or null to deconfigure.
+ */
+export function setApiKey(key: string | null) {
+  if (key) {
+    try {
+      ai = new GoogleGenAI({ apiKey: key });
+      initError = null;
+      // The key is managed in React state, which can persist to localStorage.
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unknown error during AI initialization.";
+      initError = `Failed to initialize AI with the provided key: ${message}`;
+      ai = null;
+    }
+  } else {
+    ai = null;
+    initError = "AI not configured. Please add your Gemini API Key in the Settings panel.";
   }
-  ai = new GoogleGenAI({ apiKey });
-} catch (e) {
-  initError = e instanceof Error ? e.message : "Unknown AI initialization error.";
-  console.error("AI Initialization failed:", initError);
 }
 
 const getAI = (): GoogleGenAI => {
-  if (initError) {
-    if (initError.includes('API_KEY')) {
-      throw new Error("AI Configuration Error: The API key is missing or invalid. Please configure it in your hosting environment settings. For production applications, it is highly recommended to use a backend proxy instead of exposing the key in the browser.");
-    }
-    throw new Error(`AI Initialization Error: ${initError}`);
-  }
-  if (!ai) {
-    // This case should not be hit if initError is handled, but it's a safeguard.
-    throw new Error("AI client is not available. This is an unexpected state.");
+  if (!ai || initError) {
+    throw new Error(initError || "AI client is not available.");
   }
   return ai;
 };
 
 
 export async function* streamAIResponse(prompt: string): AsyncGenerator<string> {
-    if (initError) {
-        yield `\n\n**Configuration Error:** The AI service could not be initialized. The application is configured to read an API key from the environment, but it was not found. \n\nFor this to work when deployed, the hosting platform (e.g., Vercel) must be configured to expose the \`API_KEY\` to the browser. \n\n**Note for production:** Exposing API keys on the client-side is a security risk. It is highly recommended to proxy API calls through a secure backend instead. \n\n_Error details: ${initError}_`;
-        return;
-    }
     try {
         const ai = getAI();
         const responseStream = await ai.models.generateContentStream({
@@ -75,7 +71,7 @@ In this case, respond with a helpful, friendly answer in standard Markdown forma
 
     } catch (error) {
         console.error("Error getting AI stream response:", error);
-        yield "\n\nAn error occurred while communicating with the AI. Please check the console for details.";
+        yield `\n\n**AI Service Error:**\n${error instanceof Error ? error.message : 'An unknown error occurred.'}\n\nPlease check your API key in the Settings panel or review the browser console for more details.`;
     }
 }
 
@@ -306,7 +302,8 @@ export const generateCommitMessage = async (files: {path: string, content: strin
 The message should start with a type (e.g., feat, fix, chore), followed by a concise summary.
 \`\`\`
 ${fileContents}
-\`\`\``;
+\`\`\`
+`;
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
     return response.text.trim();
 };

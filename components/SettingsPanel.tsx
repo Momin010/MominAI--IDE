@@ -16,6 +16,8 @@ interface SettingsPanelProps {
   setSupabaseUrl: (url: string | null) => void;
   supabaseAnonKey: string | null;
   setSupabaseAnonKey: (key: string | null) => void;
+  geminiApiKey: string | null;
+  setGeminiApiKey: (key: string | null) => void;
 }
 
 interface GithubUser {
@@ -31,7 +33,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     supabaseUrl,
     setSupabaseUrl,
     supabaseAnonKey,
-    setSupabaseAnonKey
+    setSupabaseAnonKey,
+    geminiApiKey,
+    setGeminiApiKey
 }) => {
     const { theme, setTheme } = useTheme();
     const [isGithubAuthModalOpen, setIsGithubAuthModalOpen] = useState(false);
@@ -42,6 +46,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     
     const [localSupabaseUrl, setLocalSupabaseUrl] = useState(supabaseUrl || '');
     const [localSupabaseAnonKey, setLocalSupabaseAnonKey] = useState(supabaseAnonKey || '');
+    const [localGeminiKey, setLocalGeminiKey] = useState('');
 
 
     useEffect(() => {
@@ -97,6 +102,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         addNotification({ type: 'success', message: 'Supabase configuration saved. You can now connect.' });
     };
 
+    const handleSaveGeminiKey = () => {
+        if (localGeminiKey.trim()) {
+            setGeminiApiKey(localGeminiKey.trim());
+            addNotification({ type: 'success', message: 'Gemini API Key saved.' });
+            setLocalGeminiKey('');
+        }
+    };
+    
+    const handleClearGeminiKey = () => {
+        setGeminiApiKey(null);
+        addNotification({ type: 'info', message: 'Gemini API Key cleared.' });
+    };
+
 
     return (
         <div className="text-gray-200 h-full flex flex-col bg-[var(--ui-panel-bg)] backdrop-blur-md">
@@ -104,6 +122,40 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <h2 className="text-sm font-bold uppercase tracking-wider">Settings</h2>
             </div>
             <div className="flex-grow overflow-y-auto p-4 space-y-6">
+                {/* Gemini API Key Section */}
+                <div>
+                    <h3 className="text-md font-semibold mb-2 text-white">Gemini API Key</h3>
+                    {geminiApiKey ? (
+                        <div className="bg-black/20 p-4 rounded-lg flex items-center justify-between">
+                            <p className="text-sm text-green-400">API Key is set and active.</p>
+                            <button onClick={handleClearGeminiKey} className="bg-red-600 hover:bg-red-500 text-white text-sm px-3 py-1.5 rounded-lg transition-colors">
+                                Clear Key
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="bg-black/20 p-4 rounded-lg">
+                            <p className="text-sm text-gray-400 mb-3">
+                                Provide your own Gemini API key to enable all AI features. 
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline ml-1">
+                                    Get a key from Google AI Studio.
+                                </a>
+                            </p>
+                            <div className="flex space-x-2">
+                                <input
+                                    type="password"
+                                    placeholder="Enter your API Key..."
+                                    value={localGeminiKey}
+                                    onChange={(e) => setLocalGeminiKey(e.target.value)}
+                                    className="flex-grow bg-black/30 p-2 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <button onClick={handleSaveGeminiKey} className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 rounded-lg transition-colors">
+                                    Save
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                  {/* Supabase Authentication Section */}
                 <div>
                     <h3 className="text-md font-semibold mb-2 text-white">Supabase Account</h3>

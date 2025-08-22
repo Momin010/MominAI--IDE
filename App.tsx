@@ -16,7 +16,7 @@ import { usePlugins } from './hooks/usePlugins';
 import { allPlugins } from './plugins';
 import PreviewContainer from './components/PreviewContainer';
 import AiFileGeneratorModal from './components/AiFileGeneratorModal';
-import { generateCodeForFile, fixCodeWithAI, updateCssInProject } from './services/aiService';
+import { generateCodeForFile, fixCodeWithAI, updateCssInProject, setApiKey as setAiServiceKey } from './services/aiService';
 import { AIProvider } from './contexts/AIContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { CommandPaletteProvider, useCommandPalette } from './hooks/useCommandPalette';
@@ -116,6 +116,7 @@ const AppContent: React.FC = () => {
   const [supabaseUrl, setSupabaseUrl] = useState<string | null>(() => localStorage.getItem('supabaseUrl'));
   const [supabaseAnonKey, setSupabaseAnonKey] = useState<string | null>(() => localStorage.getItem('supabaseAnonKey'));
   const [diffModalState, setDiffModalState] = useState<{ isOpen: boolean, actions: FileAction[], originalFiles: {path: string, content: string}[], messageIndex?: number }>({ isOpen: false, actions: [], originalFiles: [] });
+  const [geminiApiKey, setGeminiApiKey] = useState<string | null>(() => localStorage.getItem('geminiApiKey'));
 
   // Inspector state
   const [isInspectorActive, setIsInspectorActive] = useState(false);
@@ -136,6 +137,16 @@ const AppContent: React.FC = () => {
     setNotifications(prev => [...prev, { ...notification, id }]);
   }, []);
   
+  // Effect to initialize AI service with the user's key on load
+  useEffect(() => {
+    setAiServiceKey(geminiApiKey);
+  }, [geminiApiKey]);
+
+  const handleSetGeminiApiKey = (key: string | null) => {
+    setGeminiApiKey(key); // Update React state
+    setAiServiceKey(key); // This function will also update localStorage
+  };
+
   // Inspector Logic
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -315,7 +326,7 @@ const AppContent: React.FC = () => {
       addStatusBarItem: (item) => setStatusBarItems(prev => [...prev.filter(i => i.id !== item.id), item]),
       removeStatusBarItem: (id) => setStatusBarItems(prev => prev.filter(i => i.id !== id)),
       addEditorAction: (action) => setEditorActions(prev => [...prev.filter(a => a.id !== action.id), action]),
-      removeEditorAction: (id) => setEditorActions(prev => prev.filter(a => a.id !== id)),
+      removeEditorAction: (id) => setEditorActions(prev => prev.filter(a => a.id !== a.id)),
       onActiveFileChanged: (cb) => { listeners.onActiveFileChanged.add(cb); return () => listeners.onActiveFileChanged.delete(cb); },
       onFileSaved: (cb) => { listeners.onFileSaved.add(cb); return () => listeners.onFileSaved.delete(cb); },
       showNotification: (notification: Omit<Notification, 'id'>) => addNotification(notification),
@@ -604,6 +615,8 @@ const AppContent: React.FC = () => {
                            setSupabaseUrl={setSupabaseUrl}
                            supabaseAnonKey={supabaseAnonKey}
                            setSupabaseAnonKey={setSupabaseAnonKey}
+                           geminiApiKey={geminiApiKey}
+                           setGeminiApiKey={handleSetGeminiApiKey}
                         />
                     </SideBar>
                 }
