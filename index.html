@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeCraft IDE</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+          "react/": "https://esm.sh/react@^19.1.1/",
+          "react": "https://esm.sh/react@^19.1.1",
+          "@google/genai": "https://esm.sh/@google/genai@^1.15.0"
+        }
+      }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+    <!-- Supabase for backend -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- Xterm for terminal UI -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/dist/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/dist/xterm-addon-fit.js"></script>
+    <!-- Wasmer for WebAssembly shell -->
+    <script src="https://cdn.jsdelivr.net/npm/@wasmer/sdk/dist/index.umd.js"></script>
+    <!-- Mermaid for Code Visualizer plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
+      window.MonacoEnvironment = {
+        getWorkerUrl: function (workerId, label) {
+          return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+            self.MonacoEnvironment = {
+              baseUrl: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/'
+            };
+            importScripts('https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/base/worker/workerMain.js');`
+          )}`;
+        }
+      };
+    </script>
+    <style>
+      :root {
+        /* Glassmorphism Theme */
+        --text-primary: #ffffff;
+        --text-secondary: #a0aec0; /* gray-400 */
+        --text-tertiary: #718096; /* gray-500 */
+        --ui-panel-bg: rgba(20, 20, 35, 0.6);
+        --ui-panel-bg-heavy: rgba(10, 10, 25, 0.75);
+        --ui-border: rgba(255, 255, 255, 0.15);
+        --ui-hover-bg: rgba(255, 255, 255, 0.1);
+        --accent-primary: #4299e1; /* blue-500 */
+        --accent-secondary: #3182ce; /* blue-600 */
+        --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+        --scrollbar-thumb-hover: rgba(255, 255, 255, 0.4);
+        /* New vars for floating UI */
+        --ui-border-radius: 12px;
+        --ui-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+      @keyframes fade-scale-in {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      @keyframes fade-in-up {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes float-in {
+        from { opacity: 0; transform: translateY(20px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .animate-float-in {
+        animation: float-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+      }
+      .animate-fade-scale-in {
+        animation: fade-scale-in 0.3s ease-in-out forwards;
+      }
+      .animate-fade-in-up {
+        animation: fade-in-up 0.5s ease-in-out forwards;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        /* Fallback color for when image fails to load */
+        background-color: #f0f2f5;
+        background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        color: var(--text-primary);
+        margin: 0;
+        overflow: hidden; /* Prevent body scrollbars */
+        padding: 1rem; /* Add padding to float the UI */
+      }
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--scrollbar-thumb-hover);
+      }
+      .monaco-editor {
+        width: 100% !important;
+        height: 100% !important;
+      }
+      /* Breakpoint styles for Monaco Editor */
+      .monaco-breakpoint {
+        background: #e52525;
+        border-radius: 50%;
+        width: 8px !important;
+        height: 8px !important;
+        margin-top: 5px;
+        margin-left: 5px; /* Adjust as needed */
+        cursor: pointer;
+      }
+      /* Make xtermjs terminal fit its container */
+      .xterm {
+        padding: 5px;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

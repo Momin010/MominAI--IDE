@@ -1,0 +1,8 @@
+{
+  "name": "CodeCraft IDE",
+  "description": "A full-featured, persistent online IDE with a file explorer, code editor, simulated terminal, and an AI assistant pane. All data is saved to local storage, ensuring your workspace is preserved across sessions.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
