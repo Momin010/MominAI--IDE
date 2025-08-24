@@ -1,7 +1,9 @@
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, createContext, useContext, useRef } from 'react';
 import { useFileSystem } from './hooks/useFileSystem';
-import type { FileSystemNode, IDEApi, StatusBarItem, EditorAction, Notification, SearchResult, Diagnostic, Command, ConsoleMessage, UserPresence, BroadcastMessage, StoryboardComponent, DependencyReport, SupabaseUser, InspectedElement, FileAction, BottomPanelView } from './types';
+import type { FileSystemNode, IDEApi, StatusBarItem, EditorAction, Notification, SearchResult, Diagnostic, Command, ConsoleMessage, UserPresence, BroadcastMessage, StoryboardComponent, DependencyReport, SupabaseUser, InspectedElement, FileAction, BottomPanelView, Directory } from './types';
 import ResizablePanels from './components/ResizablePanels';
 import { StatusBar } from './components/StatusBar';
 import { Terminal } from './components/Terminal';
@@ -39,6 +41,11 @@ import { getAllFiles } from './utils/fsUtils';
 import InspectorPanel from './components/InspectorPanel';
 import AiDiffViewModal from './components/AiDiffViewModal';
 import TitleBar from './components/TitleBar';
+import TemplatesPanel from './components/TemplatesPanel';
+import { ProjectTemplate, templates } from './services/templates';
+import { buildFsFromTemplate } from './utils/templateHelper';
+import ConfirmationModal from './components/ConfirmationModal';
+import { WebContainerProvider, useWebContainer } from './contexts/WebContainerContext';
 
 
 // --- Notification System ---
@@ -82,7 +89,6 @@ const NotificationContainer: React.FC<{ notifications: Notification[]; onDismiss
 );
 
 const AppContent: React.FC = () => {
-  const fsState = useFileSystem();
   const [openFiles, setOpenFiles] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [lastActiveFile, setLastActiveFile] = useState<string | null>(null);
@@ -119,6 +125,7 @@ const AppContent: React.FC = () => {
   const [diffModalState, setDiffModalState] = useState<{ isOpen: boolean, actions: FileAction[], originalFiles: {path: string, content: string}[], messageIndex?: number }>({ isOpen: false, actions: [], originalFiles: [] });
   const [geminiApiKey, setGeminiApiKey] = useState<string | null>(() => localStorage.getItem('geminiApiKey'));
   const [panelVisibility, setPanelVisibility] = useState({ left: true, right: true, bottom: true });
+  const [confirmationState, setConfirmationState] = useState<{ isOpen: boolean; title: string; message: React.ReactNode; onConfirm: () => void; }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
   // Inspector state
   const [isInspectorActive, setIsInspectorActive] = useState(false);
@@ -126,11 +133,13 @@ const AppContent: React.FC = () => {
   const [isSavingCss, setIsSavingCss] = useState(false);
   const previewIframeRef = useRef<HTMLIFrameElement | null>(null);
 
+  const { serverUrl } = useWebContainer();
+
 
   const { voiceStatus, startListening, stopListening, isListening } = useVoiceCommands();
 
   const { setTheme } = useTheme();
-  const { registerCommand, setIsOpen: setCommandPaletteOpen } = useCommandPalette();
+  const { registerCommand, commands } = useCommandPalette();
   const [diagnostics, setDiagnostics] = useState<Record<string, Diagnostic[]>>({});
   const analysisTimeoutRef = useRef<number | null>(null);
 
@@ -139,6 +148,8 @@ const AppContent: React.FC = () => {
     setNotifications(prev => [...prev, { ...notification, id }]);
   }, []);
   
+  const fsState = useFileSystem(supabaseUser, addNotification);
+
   // Effect to initialize AI service with the user's key on load
   useEffect(() => {
     const key = localStorage.getItem('geminiApiKey');
@@ -512,6 +523,36 @@ const AppContent: React.FC = () => {
       startListening(handleVoiceCommand);
     }
   };
+
+  const handleSelectTemplate = useCallback((template: ProjectTemplate) => {
+    setConfirmationState({
+        isOpen: true,
+        title: `Load '${template.name}' Template?`,
+        message: (
+            <p>This will <strong className="text-red-400">replace your entire current workspace</strong>. All unsaved changes will be lost. Are you sure you want to continue?</p>
+        ),
+        onConfirm: () => {
+            try {
+                const newFs = buildFsFromTemplate(template.files);
+                fsState.replaceFs(newFs);
+                // Close all tabs and open the main file of the template
+                setOpenFiles([]);
+                setActiveTab(null);
+                const mainFile = Object.keys(template.files).find(f => f.includes('index.html') || f.includes('main.jsx') || f.includes('App.jsx'));
+                if (mainFile) {
+                    handleFileSelect(mainFile);
+                }
+                addNotification({type: 'success', message: `'${template.name}' template loaded successfully.`});
+            } catch(e) {
+                if (e instanceof Error) addNotification({ type: 'error', message: `Failed to load template: ${e.message}`});
+            }
+        }
+    });
+  }, [fsState.replaceFs, addNotification, handleFileSelect]);
+
+  const handleAiScaffold = useMemo(() => {
+    return commands.find(c => c.id === 'ai.scaffold.project')?.action;
+  }, [commands]);
   
   if (fsState.isLoading) {
     return (
@@ -546,10 +587,11 @@ const AppContent: React.FC = () => {
     <div className="flex flex-col h-full bg-[var(--ui-panel-bg)] backdrop-blur-md">
       <div className={isInspectorActive ? "h-3/5" : "h-full"}>
          <PreviewContainer
-            isVisible={isPreviewVisible}
+            isVisible={isPreviewVisible || !!serverUrl}
             title={previewTitle}
             onClose={ideApi.hidePreview}
             previewContext={previewContext}
+            serverUrl={serverUrl}
             iframeRef={previewIframeRef}
             onToggleInspector={handleToggleInspector}
             isInspectorActive={isInspectorActive}
@@ -618,6 +660,11 @@ const AppContent: React.FC = () => {
                               githubToken={githubToken} 
                               switchView={switchView}
                               supabaseUser={supabaseUser}
+                          />
+                          <TemplatesPanel
+                              templates={templates}
+                              onSelectTemplate={handleSelectTemplate}
+                              onScaffoldWithAi={handleAiScaffold}
                           />
                           {/* These panels are now main views */}
                           <div />
@@ -703,6 +750,17 @@ const AppContent: React.FC = () => {
             onClose={() => setIsRegexModalOpen(false)}
             addNotification={addNotification}
         />
+        <ConfirmationModal
+            isOpen={confirmationState.isOpen}
+            onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+            onConfirm={() => {
+                confirmationState.onConfirm();
+                setConfirmationState(prev => ({ ...prev, isOpen: false }));
+            }}
+            title={confirmationState.title}
+        >
+            {confirmationState.message}
+        </ConfirmationModal>
         {diffModalState.isOpen && (
             <AiDiffViewModal
                 isOpen={diffModalState.isOpen}
@@ -743,6 +801,7 @@ const AppWithNotifications: React.FC = () => {
     };
 
     const contextValue = useMemo(() => ({ addNotification }), [addNotification]);
+    const fsState = useFileSystem(null, addNotification); // Assuming no user for now.
     
     // Global key listener for Command Palette
     useEffect(() => {
@@ -763,7 +822,9 @@ const AppWithNotifications: React.FC = () => {
 
     return (
         <NotificationContext.Provider value={contextValue}>
-            <AppContent />
+            <WebContainerProvider fs={fsState.fs}>
+                <AppContent />
+            </WebContainerProvider>
             <NotificationContainer notifications={notifications} onDismiss={dismissNotification} />
         </NotificationContext.Provider>
     );

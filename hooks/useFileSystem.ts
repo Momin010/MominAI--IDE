@@ -1,6 +1,8 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import type { FileSystemNode, Directory } from '../types';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { FileSystemNode, Directory, SupabaseUser, Notification } from '../types';
+import * as supabaseService from '../services/supabaseService';
 
 const DEFAULT_FILE_SYSTEM: Directory = {
   type: 'directory',
@@ -114,35 +116,81 @@ const findNodeAndParent = (root: Directory, path: string): { parent: Directory |
 };
 
 
-export const useFileSystem = () => {
+export const useFileSystem = (
+  user: SupabaseUser | null,
+  addNotification: (notification: Omit<Notification, 'id'>) => void
+) => {
   const [fs, setFs] = useState<Directory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const saveTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    try {
-      const savedFs = localStorage.getItem('fileSystem');
-      if (savedFs) {
-        setFs(JSON.parse(savedFs));
-      } else {
-        setFs(DEFAULT_FILE_SYSTEM);
-        localStorage.setItem('fileSystem', JSON.stringify(DEFAULT_FILE_SYSTEM));
-      }
-    } catch (error) {
-      console.error("Failed to load file system from localStorage:", error);
-      setFs(DEFAULT_FILE_SYSTEM);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    const loadFileSystem = async () => {
+        setIsLoading(true);
+        addNotification({ type: 'info', message: 'Initializing workspace...' });
+        
+        if (user) {
+            // User is logged in, try loading from Supabase
+            try {
+                addNotification({ type: 'info', message: 'Syncing workspace from cloud...' });
+                const remoteWorkspace = await supabaseService.loadWorkspace();
+                if (remoteWorkspace) {
+                    setFs(remoteWorkspace.content);
+                    localStorage.setItem('fileSystem', JSON.stringify(remoteWorkspace.content));
+                    addNotification({ type: 'success', message: 'Workspace synced from cloud.' });
+                } else {
+                    addNotification({ type: 'info', message: 'No cloud workspace found. Creating one from local data...' });
+                    const savedFs = localStorage.getItem('fileSystem');
+                    const localFs = savedFs ? JSON.parse(savedFs) : DEFAULT_FILE_SYSTEM;
+                    setFs(localFs);
+                    await supabaseService.saveWorkspace(localFs);
+                    addNotification({ type: 'success', message: 'Local workspace pushed to cloud.' });
+                }
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                addNotification({ type: 'error', message: `Cloud sync failed: ${message}. Using local version.` });
+                const savedFs = localStorage.getItem('fileSystem');
+                setFs(savedFs ? JSON.parse(savedFs) : DEFAULT_FILE_SYSTEM);
+            }
+        } else {
+            // No user, load from local storage
+            const savedFs = localStorage.getItem('fileSystem');
+            setFs(savedFs ? JSON.parse(savedFs) : DEFAULT_FILE_SYSTEM);
+            addNotification({ type: 'success', message: 'Workspace loaded from local storage.' });
+        }
+        setIsLoading(false);
+    };
 
-  const saveFs = (newFs: Directory) => {
+    loadFileSystem();
+  }, [user, addNotification]);
+
+  const saveFs = useCallback((newFs: Directory) => {
     localStorage.setItem('fileSystem', JSON.stringify(newFs));
     setFs(newFs);
-  };
+
+    if (user) {
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = window.setTimeout(async () => {
+            try {
+                await supabaseService.saveWorkspace(newFs);
+                console.log("Workspace auto-saved to Supabase.");
+            } catch (error) {
+                console.error("Failed to auto-save workspace to Supabase:", error);
+                addNotification({
+                    type: 'error',
+                    message: 'Cloud auto-save failed. Your work is saved locally.',
+                    duration: 10000,
+                });
+            }
+        }, 2000); // Debounce for 2 seconds
+    }
+  }, [user, addNotification]);
 
   const replaceFs = useCallback((newFs: Directory) => {
     saveFs(newFs);
-  }, []);
+  }, [saveFs]);
 
   const getFileSystem = useCallback(() => fs, [fs]);
 
@@ -164,67 +212,59 @@ export const useFileSystem = () => {
 
 
   const createNode = useCallback((path: string, type: 'file' | 'directory', content: string = '') => {
-    setFs(currentFs => {
-      if (!currentFs) return currentFs;
-      const newFs = JSON.parse(JSON.stringify(currentFs));
-      
-      const parts = getPathParts(path);
-      let current: Directory = newFs;
-      
-      // Ensure parent directories exist
-      for (let i = 0; i < parts.length - 1; i++) {
-          const part = parts[i];
-          if (!current.children[part]) {
-              current.children[part] = { type: 'directory', children: {} };
-          }
-          const nextNode = current.children[part];
-          if (nextNode.type !== 'directory') {
-              throw new Error(`Path conflict: ${part} is a file.`);
-          }
-          current = nextNode;
-      }
-      
-      const name = parts[parts.length - 1];
-      if (current.children[name]) {
-         throw new Error(`'${name}' already exists.`);
-      }
+    if (!fs) return;
+    const newFs = JSON.parse(JSON.stringify(fs));
+    
+    const parts = getPathParts(path);
+    let current: Directory = newFs;
+    
+    for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i];
+        if (!current.children[part]) {
+            current.children[part] = { type: 'directory', children: {} };
+        }
+        const nextNode = current.children[part];
+        if (nextNode.type !== 'directory') {
+            throw new Error(`Path conflict: ${part} is a file.`);
+        }
+        current = nextNode;
+    }
+    
+    const name = parts[parts.length - 1];
+    if (current.children[name]) {
+       throw new Error(`'${name}' already exists.`);
+    }
 
-      current.children[name] = type === 'file' 
-        ? { type: 'file', content } 
-        : { type: 'directory', children: {} };
-      
-      saveFs(newFs);
-      return newFs;
-    });
-  }, []);
+    current.children[name] = type === 'file' 
+      ? { type: 'file', content } 
+      : { type: 'directory', children: {} };
+    
+    saveFs(newFs);
+  }, [fs, saveFs]);
   
   const scaffoldProject = useCallback((files: Record<string, string>) => {
-    setFs(currentFs => {
-        if (!currentFs) return currentFs;
-        const newFs = JSON.parse(JSON.stringify(currentFs));
-        
-        Object.entries(files).forEach(([path, content]) => {
-            const parts = getPathParts(path);
-            let current: Directory = newFs;
-            
-            for (let i = 0; i < parts.length - 1; i++) {
-                const part = parts[i];
-                if (!current.children[part]) {
-                    current.children[part] = { type: 'directory', children: {} };
-                }
-                current = current.children[part] as Directory;
-            }
-            
-            const name = parts[parts.length - 1];
-            if (!current.children[name]) {
-                current.children[name] = { type: 'file', content };
-            }
-        });
-
-        saveFs(newFs);
-        return newFs;
-    });
-  }, []);
+      if (!fs) return;
+      const newFs = JSON.parse(JSON.stringify(fs));
+      
+      Object.entries(files).forEach(([path, content]) => {
+          const parts = getPathParts(path);
+          let current: Directory = newFs;
+          
+          for (let i = 0; i < parts.length - 1; i++) {
+              const part = parts[i];
+              if (!current.children[part]) {
+                  current.children[part] = { type: 'directory', children: {} };
+              }
+              current = current.children[part] as Directory;
+          }
+          
+          const name = parts[parts.length - 1];
+          if (!current.children[name]) {
+              current.children[name] = { type: 'file', content };
+          }
+      });
+      saveFs(newFs);
+  }, [fs, saveFs]);
 
 
   const readNode = useCallback((path: string): string | null => {
@@ -233,102 +273,89 @@ export const useFileSystem = () => {
   }, [getNode]);
 
   const updateNode = useCallback((path: string, content: string) => {
-    setFs(currentFs => {
-      if (!currentFs) return currentFs;
-      const newFs = JSON.parse(JSON.stringify(currentFs));
-      
-      const parts = getPathParts(path);
-      let target: any = newFs;
-      for (let i = 0; i < parts.length - 1; i++) {
-        target = target.children[parts[i]];
-      }
+    if (!fs) return;
+    const newFs = JSON.parse(JSON.stringify(fs));
+    
+    const parts = getPathParts(path);
+    let target: any = newFs;
+    for (let i = 0; i < parts.length - 1; i++) {
+      target = target.children[parts[i]];
+    }
 
-      const nodeToUpdate = target.children[parts[parts.length - 1]];
-      if (nodeToUpdate && nodeToUpdate.type === 'file') {
-        nodeToUpdate.content = content;
-        saveFs(newFs);
-        return newFs;
-      }
-      
-      return currentFs;
-    });
-  }, []);
+    const nodeToUpdate = target.children[parts[parts.length - 1]];
+    if (nodeToUpdate && nodeToUpdate.type === 'file') {
+      nodeToUpdate.content = content;
+      saveFs(newFs);
+    }
+  }, [fs, saveFs]);
 
   const deleteNode = useCallback((path: string) => {
-    setFs(currentFs => {
-       if (!currentFs) return currentFs;
-       const newFs = JSON.parse(JSON.stringify(currentFs));
-       const { parent, node, name } = findNodeAndParent(newFs, path);
+    if (!fs) return;
+    const newFs = JSON.parse(JSON.stringify(fs));
+    const { parent, node, name } = findNodeAndParent(newFs, path);
 
-       if (parent && node) {
-         delete parent.children[name];
-         saveFs(newFs);
-         return newFs;
-       }
-       throw new Error(`Item not found: ${path}`);
-    });
-  }, []);
+    if (parent && node) {
+      delete parent.children[name];
+      saveFs(newFs);
+    } else {
+      throw new Error(`Item not found: ${path}`);
+    }
+  }, [fs, saveFs]);
 
   const renameNode = useCallback((oldPath: string, newName: string) => {
     if (!newName || newName.includes('/')) {
         throw new Error("Invalid name.");
     }
-    setFs(currentFs => {
-        if (!currentFs) return currentFs;
-        const newFs = JSON.parse(JSON.stringify(currentFs));
-        const { parent, node, name } = findNodeAndParent(newFs, oldPath);
+    if (!fs) return;
+    const newFs = JSON.parse(JSON.stringify(fs));
+    const { parent, node, name } = findNodeAndParent(newFs, oldPath);
 
-        if (parent && node) {
-            if (parent.children[newName]) {
-                throw new Error(`'${newName}' already exists.`);
-            }
-            delete parent.children[name];
-            parent.children[newName] = node;
-            saveFs(newFs);
-            return newFs;
+    if (parent && node) {
+        if (parent.children[newName]) {
+            throw new Error(`'${newName}' already exists.`);
         }
-        throw new Error(`Item not found: ${oldPath}`);
-    });
-}, []);
+        delete parent.children[name];
+        parent.children[newName] = node;
+        saveFs(newFs);
+    } else {
+      throw new Error(`Item not found: ${oldPath}`);
+    }
+  }, [fs, saveFs]);
 
   const moveNode = useCallback((sourcePath: string, destDirPath: string) => {
     if (sourcePath === destDirPath || destDirPath.startsWith(sourcePath + '/')) {
       throw new Error("Cannot move a directory into itself.");
     }
+    if (!fs) return;
+    const newFs = JSON.parse(JSON.stringify(fs));
 
-    setFs(currentFs => {
-      if (!currentFs) return null;
-      const newFs = JSON.parse(JSON.stringify(currentFs));
-
-      const { parent: sourceParent, node: sourceNode, name: sourceName } = findNodeAndParent(newFs, sourcePath);
-      
-      if (!sourceParent || !sourceNode || !sourceName) {
-        throw new Error(`Source path not found: ${sourcePath}`);
+    const { parent: sourceParent, node: sourceNode, name: sourceName } = findNodeAndParent(newFs, sourcePath);
+    
+    if (!sourceParent || !sourceNode || !sourceName) {
+      throw new Error(`Source path not found: ${sourcePath}`);
+    }
+    
+    let destDirNode: FileSystemNode | Directory | null = newFs;
+    getPathParts(destDirPath).forEach(part => {
+      if (destDirNode && destDirNode.type === 'directory') {
+        destDirNode = destDirNode.children[part];
+      } else {
+        destDirNode = null;
       }
-      
-      let destDirNode: FileSystemNode | Directory | null = newFs;
-      getPathParts(destDirPath).forEach(part => {
-        if (destDirNode && destDirNode.type === 'directory') {
-          destDirNode = destDirNode.children[part];
-        } else {
-          destDirNode = null;
-        }
-      });
-
-      if (!destDirNode || destDirNode.type !== 'directory') {
-        throw new Error(`Destination is not a directory: ${destDirPath}`);
-      }
-      if (destDirNode.children[sourceName]) {
-        throw new Error(`'${sourceName}' already exists in destination.`);
-      }
-
-      delete sourceParent.children[sourceName];
-      destDirNode.children[sourceName] = sourceNode;
-      
-      saveFs(newFs);
-      return newFs;
     });
-  }, []);
+
+    if (!destDirNode || destDirNode.type !== 'directory') {
+      throw new Error(`Destination is not a directory: ${destDirPath}`);
+    }
+    if (destDirNode.children[sourceName]) {
+      throw new Error(`'${sourceName}' already exists in destination.`);
+    }
+
+    delete sourceParent.children[sourceName];
+    destDirNode.children[sourceName] = sourceNode;
+    
+    saveFs(newFs);
+  }, [fs, saveFs]);
 
 
   return { fs, isLoading, createNode, readNode, updateNode, deleteNode, renameNode, moveNode, getNode, replaceFs, getFileSystem, scaffoldProject };

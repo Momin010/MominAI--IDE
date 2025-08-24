@@ -7,7 +7,7 @@ interface SideBarProps {
 }
 
 const SideBar: React.FC<SideBarProps> = ({ activeView, children }) => {
-    const views = ['explorer', 'search', 'source-control', 'storyboard', 'figma', 'plugins', 'settings'];
+    const views = ['explorer', 'search', 'source-control', 'templates', 'storyboard', 'figma', 'plugins', 'settings'];
     const activeIndex = views.indexOf(activeView);
     
     return (

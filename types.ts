@@ -1,5 +1,6 @@
 
 import React from 'react';
+import type { WebContainer, ShellProcess } from '@webcontainer/api';
 
 export interface File {
   type: 'file';
@@ -241,4 +242,14 @@ export interface DiffLine {
   type: 'added' | 'removed' | 'unchanged';
   content: string;
   lineNumber: number;
+}
+
+// --- WebContainer ---
+export interface WebContainerContextType {
+    webContainer: WebContainer | null;
+    shellProcess: ShellProcess | null;
+    isLoading: boolean;
+    error: string | null;
+    serverUrl: string | null;
+    runCommand: (command: string, args?: string[]) => Promise<void>;
 }

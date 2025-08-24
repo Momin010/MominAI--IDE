@@ -1,6 +1,8 @@
 
+
 import React, { useState } from 'react';
 import { Icons } from './Icon';
+import HtmlPreview from './HtmlPreview';
 
 interface PreviewContainerProps {
   isVisible: boolean;
@@ -8,6 +10,7 @@ interface PreviewContainerProps {
   children: React.ReactNode;
   onClose: () => void;
   previewContext: { html: string } | null;
+  serverUrl: string | null;
   iframeRef: React.RefObject<HTMLIFrameElement>;
   onToggleInspector: () => void;
   isInspectorActive: boolean;
@@ -18,7 +21,8 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
   title, 
   children, 
   onClose, 
-  previewContext, 
+  previewContext,
+  serverUrl, 
   iframeRef,
   onToggleInspector,
   isInspectorActive
@@ -26,11 +30,16 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
   const [isMaximized, setIsMaximized] = useState(false);
 
   const handleOpenInNewTab = () => {
-    if (!previewContext) return;
-    const blob = new Blob([previewContext.html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    // The browser will revoke the URL automatically when the tab is closed.
+    let urlToOpen: string | null = null;
+    if (serverUrl) {
+      urlToOpen = serverUrl;
+    } else if (previewContext) {
+      const blob = new Blob([previewContext.html], { type: 'text/html' });
+      urlToOpen = URL.createObjectURL(blob);
+    }
+    if (urlToOpen) {
+      window.open(urlToOpen, '_blank');
+    }
   };
 
   if (!isVisible) {
@@ -42,6 +51,15 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
     : 'h-full w-full bg-transparent flex flex-col';
     
   const headerClasses = isMaximized ? 'bg-black/40' : 'bg-black/20';
+
+  const previewContent = serverUrl ? (
+      <HtmlPreview serverUrl={serverUrl} ref={iframeRef} />
+  ) : previewContext ? (
+      <HtmlPreview content={previewContext.html} ref={iframeRef} />
+  ) : (
+      children
+  );
+
 
   return (
     <div className={containerClasses}>
@@ -58,7 +76,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
           <button
             title="Open in new tab"
             onClick={handleOpenInNewTab}
-            disabled={!previewContext}
+            disabled={!previewContext && !serverUrl}
             className="p-1 rounded hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Icons.ExternalLink className="w-4 h-4" />
@@ -79,10 +97,8 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
           </button>
         </div>
       </div>
-      <div className="flex-grow overflow-auto">
-        {React.Children.map(children, child =>
-            React.isValidElement(child) ? React.cloneElement(child, { ref: iframeRef } as any) : child
-        )}
+      <div className="flex-grow overflow-auto bg-white">
+        {previewContent}
       </div>
     </div>
   );

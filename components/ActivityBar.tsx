@@ -12,6 +12,7 @@ const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, setActiveView }) 
         { id: 'explorer', icon: <Icons.Files className="w-6 h-6"/>, title: 'Explorer', disabled: false },
         { id: 'search', icon: <Icons.Search className="w-6 h-6"/>, title: 'Search', disabled: false },
         { id: 'source-control', icon: <Icons.GitFork className="w-6 h-6"/>, title: 'Source Control', disabled: false },
+        { id: 'templates', icon: <Icons.LayoutGrid className="w-6 h-6" />, title: 'Templates', disabled: false },
         { id: 'storyboard', icon: <Icons.LayoutDashboard className="w-6 h-6"/>, title: 'Storyboard', disabled: false },
         { id: 'image-to-code', icon: <Icons.Image className="w-6 h-6"/>, title: 'Image to Code', disabled: false },
         { id: 'figma', icon: <Icons.Figma className="w-6 h-6"/>, title: 'Figma Import', disabled: false },
