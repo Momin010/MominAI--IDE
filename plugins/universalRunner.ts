@@ -2,7 +2,6 @@
 import React from 'react';
 import type { Plugin, IDEApi } from '../types';
 import { Icons } from '../components/Icon';
-import HtmlPreview from '../components/HtmlPreview';
 import { getIframeScript } from '../utils/iframeScripts';
 
 
@@ -27,7 +26,7 @@ const runModernProject = (api: IDEApi, filePath: string) => {
     api.switchBottomPanelView('terminal');
     api.appendConsoleMessage({
         type: 'system',
-        message: [`Starting dev server for ${filePath}...`],
+        message: [`Starting dev server...`],
         timestamp: new Date().toLocaleTimeString(),
     });
 
@@ -70,36 +69,47 @@ const runPython = (api: IDEApi, filePath: string) => {
 export const universalRunnerPlugin: Plugin = {
     id: 'universal-runner',
     name: 'Universal Runner',
-    description: 'Adds a "Run" button to execute various file types like HTML, JS, and Python.',
+    description: 'Adds a "Run" button to execute Python files or modern JS projects (with package.json).',
     
     activate: (api: IDEApi) => {
         api.addEditorAction({
             id: EDITOR_ACTION_ID,
-            label: 'Run File',
+            label: 'Run',
             icon: React.createElement(Icons.Play, { className: "w-4 h-4" }),
             action: (filePath, content) => {
                 const extension = filePath.split('.').pop()?.toLowerCase();
 
-                // Check for package.json to decide if it's a modern project
+                if (extension === 'py') {
+                    runPython(api, filePath);
+                    return;
+                }
+
+                // For all other supported file types, check for a package.json
                 if (api.getNode('/package.json')) {
                     runModernProject(api, filePath);
-                } else if (extension === 'py') {
-                    runPython(api, filePath);
                 } else {
                      api.showNotification({
                         type: 'warning',
-                        message: `No runner available. Try creating a package.json for a modern JS project.`
+                        message: `No runner found. Create a package.json to run a JS project.`
                     });
                 }
             },
             shouldShow: (filePath, content) => {
-                // Show for package.json or python files primarily
-                const supportedExtensions = ['py', 'json'];
-                const filename = filePath.split('/').pop()?.toLowerCase();
                 const extension = filePath.split('.').pop()?.toLowerCase();
+                
+                // List of all extensions that should show the run button.
+                // The action logic will determine *how* to run it.
+                const runnableExtensions = ['html', 'js', 'jsx', 'ts', 'tsx', 'py'];
+                
+                if (filePath.toLowerCase().endsWith('package.json')) {
+                    return true;
+                }
 
-                if (filename === 'package.json') return true;
-                return !!extension && supportedExtensions.includes(extension);
+                if (extension && runnableExtensions.includes(extension)) {
+                    return true;
+                }
+
+                return false;
             }
         });
     },

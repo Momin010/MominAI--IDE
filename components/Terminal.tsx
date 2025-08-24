@@ -8,7 +8,7 @@ const waitForLibs = (timeout = 8000): Promise<void> => {
     return new Promise((resolve, reject) => {
         const startTime = Date.now();
         const interval = setInterval(() => {
-            if (window.Terminal && window.FitAddon) {
+            if (window.Terminal && window.FitAddon?.FitAddon) {
                 clearInterval(interval);
                 resolve();
             } else if (Date.now() - startTime > timeout) {
@@ -30,6 +30,7 @@ export const Terminal: React.FC<{ fs?: any }> = () => {
     useEffect(() => {
         if (!terminalRef.current) return;
         let fitAddon: any, resizeObserver: ResizeObserver, xterm: any;
+        let commandHandler: ((event: CustomEvent) => void) | null = null;
 
         const initTerminal = async () => {
             if (!terminalRef.current) return;
@@ -44,7 +45,7 @@ export const Terminal: React.FC<{ fs?: any }> = () => {
                 });
                 xtermRef.current = xterm;
 
-                fitAddon = new window.FitAddon();
+                fitAddon = new window.FitAddon.FitAddon();
                 xterm.loadAddon(fitAddon);
                 xterm.open(terminalRef.current);
                 fitAddon.fit();
@@ -52,14 +53,13 @@ export const Terminal: React.FC<{ fs?: any }> = () => {
                 resizeObserver = new ResizeObserver(() => requestAnimationFrame(() => fitAddon?.fit()));
                 resizeObserver.observe(terminalRef.current);
                 
-                // Event listener for external commands from plugins
-                const handleRunCommand = (event: CustomEvent) => {
+                commandHandler = (event: CustomEvent) => {
                     const { command } = event.detail;
                     if (shellProcessRef.current && typeof command === 'string') {
                         shellProcessRef.current.input.write(command + '\r');
                     }
                 };
-                window.addEventListener('run-in-terminal', handleRunCommand as EventListener);
+                window.addEventListener('run-in-terminal', commandHandler as EventListener);
                 
             } catch (e) {
                 const errorMessage = e instanceof Error ? e.message : String(e);
@@ -74,7 +74,9 @@ export const Terminal: React.FC<{ fs?: any }> = () => {
         return () => { 
             resizeObserver?.disconnect(); 
             xtermRef.current?.dispose();
-            window.removeEventListener('run-in-terminal', (window as any).__terminalCommandHandler);
+            if (commandHandler) {
+                window.removeEventListener('run-in-terminal', commandHandler as EventListener);
+            }
         };
     }, []);
     
@@ -139,8 +141,8 @@ export const Terminal: React.FC<{ fs?: any }> = () => {
                         aiPromptBuffer.current = aiPromptBuffer.current.slice(0, -1);
                         xterm.write('\b \b');
                     }
-                } else {
-                    // Let the shell handle backspace
+                } else if(currentInput.length > 0) {
+                    currentInput = currentInput.slice(0, -1);
                     input.write(data);
                 }
             } else { // Regular character

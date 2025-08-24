@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Icons } from '../components/Icon';
 
@@ -34,9 +35,9 @@ export const templates: ProjectTemplate[] = [
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "echo 'Run \\\`npm install && npm run dev\\\` in a real terminal'",
-    "build": "echo 'Run \\\`npm install && npm run build\\\` in a real terminal'",
-    "preview": "echo 'Run \\\`npm run build && npm run preview\\\` in a real terminal'"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -52,8 +53,6 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
-// The following lines are modified to work in this environment
-// In a real Vite app, you would use 'import' for React and ReactDOM.
 const container = document.getElementById('root');
 const root = ReactDOM.createRoot(container);
 root.render(
@@ -75,7 +74,7 @@ function App() {
           count is {count}
         </button>
         <p>
-          Edit <code>src/App.jsx</code> and re-run to see changes.
+          Edit <code>src/App.jsx</code> and save to test HMR
         </p>
       </div>
     </div>
